@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 import { useBreathingExercise } from "@/lib/useBreathingExercise";
 
-export default function MindfulnessHub() {
+function MindfulnessHub() {
   const {
     breathingActive,
     breatheState,
@@ -357,3 +357,5 @@ export default function MindfulnessHub() {
     </div>
   );
 }
+
+export default memo(MindfulnessHub);

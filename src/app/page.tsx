@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense, memo } from "react";
 import type { CoachPlan, MoodLog } from "@/lib/types";
 
 const DashboardOverview = lazy(() => import("../components/DashboardOverview"));
@@ -10,12 +10,20 @@ const MindfulnessHub = lazy(() => import("../components/MindfulnessHub"));
 const AICoach = lazy(() => import("../components/AICoach"));
 
 const FALLBACK = (
-  <div style={{ display: "flex", justifyContent: "center", padding: "60px", color: "var(--text-secondary)" }}>
+  <div role="status" aria-label="Loading section" style={{ display: "flex", justifyContent: "center", padding: "60px", color: "var(--text-secondary)" }}>
     Loading...
   </div>
 );
 
-export default function Home() {
+const NAV_TABS = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "coach", label: "AI Study Coach" },
+  { id: "journal", label: "AI Journal Analyzer" },
+  { id: "chat", label: "Asha Chat Companion" },
+  { id: "mindfulness", label: "Mindfulness Hub" },
+] as const;
+
+function Home() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [exam, setExam] = useState("JEE Main/Advanced");
   const [theme, setTheme] = useState(() => {
@@ -88,14 +96,6 @@ export default function Home() {
     }
   }, [theme]);
 
-  const navTabs = [
-    { id: "dashboard", label: "Dashboard" },
-    { id: "coach", label: "AI Study Coach" },
-    { id: "journal", label: "AI Journal Analyzer" },
-    { id: "chat", label: "Asha Chat Companion" },
-    { id: "mindfulness", label: "Mindfulness Hub" },
-  ];
-
   const renderTab = useCallback(() => {
     switch (activeTab) {
       case "dashboard":
@@ -136,7 +136,7 @@ export default function Home() {
 
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
           <nav style={{ display: "flex", gap: "8px" }} aria-label="Main navigation">
-            {navTabs.map((tab) => (
+            {NAV_TABS.map((tab) => (
               <button
                 key={tab.id}
                 id={`nav-tab-${tab.id}`}
@@ -173,7 +173,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main id="main-content" className="main-content" style={{ flex: 1, maxWidth: "1200px", width: "100%", marginLeft: "auto", marginRight: "auto", padding: "24px 16px" }}>
+      <main id="main-content" className="main-content" aria-live="polite" aria-label="Main application content" style={{ flex: 1, maxWidth: "1200px", width: "100%", marginLeft: "auto", marginRight: "auto", padding: "24px 16px" }}>
         <Suspense fallback={FALLBACK}>
           {renderTab()}
         </Suspense>
@@ -194,3 +194,5 @@ export default function Home() {
     </div>
   );
 }
+
+export default memo(Home);

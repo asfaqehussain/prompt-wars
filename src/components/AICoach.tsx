@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import type { CoachPlan } from "@/lib/types";
 import { generateCoachRoadmap } from "@/lib/api";
 
@@ -9,7 +9,7 @@ interface AICoachProps {
   setActivePlan: (plan: CoachPlan | null) => void;
 }
 
-export default function AICoach({ activePlan, setActivePlan }: AICoachProps) {
+function AICoach({ activePlan, setActivePlan }: AICoachProps) {
   // Form onboarding state
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState({
@@ -105,7 +105,7 @@ export default function AICoach({ activePlan, setActivePlan }: AICoachProps) {
   // Onboarding Wizard Renders
   if (loading) {
     return (
-      <div className="glass-card animate-fade-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 40px", textAlign: "center", gap: "24px" }}>
+      <div className="glass-card animate-fade-in" role="status" aria-live="polite" aria-label="AI Coach is generating your roadmap" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 40px", textAlign: "center", gap: "24px" }}>
         <div className="spinner" style={{
           width: "48px",
           height: "48px",
@@ -260,7 +260,7 @@ export default function AICoach({ activePlan, setActivePlan }: AICoachProps) {
         )}
 
         {error && (
-          <p style={{ color: "var(--stress-high)", fontSize: "13px", marginBottom: "16px" }}>⚠️ {error}</p>
+          <p role="alert" style={{ color: "var(--stress-high)", fontSize: "13px", marginBottom: "16px" }}>⚠️ {error}</p>
         )}
 
         {/* Wizard Footer controls */}
@@ -459,3 +459,5 @@ export default function AICoach({ activePlan, setActivePlan }: AICoachProps) {
     </div>
   );
 }
+
+export default memo(AICoach);

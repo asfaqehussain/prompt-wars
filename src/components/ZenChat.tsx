@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { sendChatMessage } from "@/lib/api";
 
 interface Message {
@@ -17,9 +17,9 @@ const starterPrompts = [
   "My mock test scores are making me doubt myself.",
   "I can't sleep because of exam thoughts.",
   "My parents are keeping high expectations of me.",
-];
+] as const;
 
-export default function ZenChat({ exam }: ZenChatProps) {
+function ZenChat({ exam }: ZenChatProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "model",
@@ -31,13 +31,14 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatLogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
   const handleSend = useCallback(async (textToSend: string) => {
-    if (!textToSend.trim()) return;
+    if (!textToSend.trim() || loading) return;
 
     const newMessages: Message[] = [...messages, { role: "user", content: textToSend }];
     setMessages(newMessages);
@@ -47,8 +48,7 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
     try {
       const data = await sendChatMessage(newMessages, exam);
       setMessages((prev) => [...prev, { role: "model", content: data.content }]);
-    } catch (error: unknown) {
-      console.error(error);
+    } catch {
       setMessages((prev) => [
         ...prev,
         {
@@ -59,39 +59,29 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
     } finally {
       setLoading(false);
     }
-  }, [messages, exam]);
+  }, [messages, exam, loading]);
 
-  // Helper to format chatbot responses into line breaks/lists safely without complex libraries
   const formatMessage = useCallback((content: string) => {
     return content.split("\n").map((line, idx) => {
-      // Bold items **text**
       let formattedLine = line;
       const boldRegex = /\*\*(.*?)\*\*/g;
-      
-      // Match lists starting with *
       const isListItem = line.trim().startsWith("*");
       if (isListItem) {
         formattedLine = line.trim().substring(1).trim();
       }
-
       const elements: React.ReactNode[] = [];
       let lastIndex = 0;
       let match;
-
       while ((match = boldRegex.exec(formattedLine)) !== null) {
-        // Add normal text before match
         if (match.index > lastIndex) {
           elements.push(formattedLine.substring(lastIndex, match.index));
         }
-        // Add bold element
         elements.push(<strong key={match.index} style={{ color: "var(--secondary)" }}>{match[1]}</strong>);
         lastIndex = boldRegex.lastIndex;
       }
-
       if (lastIndex < formattedLine.length) {
         elements.push(formattedLine.substring(lastIndex));
       }
-
       if (isListItem) {
         return (
           <li key={idx} style={{ marginLeft: "20px", marginBottom: "6px", listStyleType: "disc" }}>
@@ -99,7 +89,6 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
           </li>
         );
       }
-
       return (
         <p key={idx} style={{ marginBottom: line.trim() ? "10px" : "16px", minHeight: "1px" }}>
           {elements.length > 0 ? elements : formattedLine}
@@ -110,7 +99,6 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
 
   return (
     <div className="glass-card animate-fade-in" style={{ display: "flex", flexDirection: "column", height: "550px", padding: "16px" }}>
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "12px", marginBottom: "16px" }}>
         <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "radial-gradient(circle, var(--accent) 0%, var(--primary) 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", boxShadow: "0 0 10px var(--primary-glow)" }}>
           👩‍⚕️
@@ -123,8 +111,7 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
         </div>
       </div>
 
-      {/* Messages Log area */}
-      <div style={{ flex: 1, overflowY: "auto", paddingRight: "8px", display: "flex", flexDirection: "column" }}>
+      <div ref={chatLogRef} role="log" aria-label="Chat messages" aria-live="polite" style={{ flex: 1, overflowY: "auto", paddingRight: "8px", display: "flex", flexDirection: "column" }}>
         {messages.map((msg, idx) => (
           <div key={idx} className={`chat-message ${msg.role === "user" ? "message-user" : "message-bot"}`}>
             <div className="chat-bubble">
@@ -144,7 +131,6 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Suggestions / Prompt starters */}
       {messages.length === 1 && !loading && (
         <div style={{ margin: "12px 0 6px 0" }}>
           <span style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "6px" }}>Common student situations:</span>
@@ -153,17 +139,13 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
               <button
                 key={i}
                 onClick={() => handleSend(p)}
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  borderRadius: "16px",
-                  padding: "6px 12px",
-                  fontSize: "12px",
-                  color: "var(--text-secondary)",
-                  cursor: "pointer",
-                  transition: "var(--transition-smooth)"
-                }}
                 className="starter-btn"
+                aria-label={`Send: ${p}`}
+                style={{
+                  background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
+                  borderRadius: "16px", padding: "6px 12px", fontSize: "12px",
+                  color: "var(--text-secondary)", cursor: "pointer", transition: "var(--transition-smooth)"
+                }}
               >
                 💬 {p}
               </button>
@@ -172,7 +154,6 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
         </div>
       )}
 
-      {/* Input area */}
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "12px", marginTop: "12px", display: "flex", gap: "10px" }}>
         <input
           type="text"
@@ -186,27 +167,26 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
             }
           }}
           disabled={loading}
+          aria-label="Type your message"
           style={{ fontSize: "14px", padding: "12px 14px" }}
         />
         <button
           className="premium-btn"
           onClick={() => handleSend(inputValue)}
           disabled={loading || !inputValue.trim()}
+          aria-label="Send message"
           style={{ padding: "0 20px", borderRadius: "12px" }}
         >
           Send
         </button>
       </div>
 
-      {/* CSS Dot blink animation for loading state */}
       <style jsx global>{`
         @keyframes dotBlink {
           0%, 100% { opacity: 0.3; transform: scale(1); }
           50% { opacity: 1; transform: scale(1.15); }
         }
-        .dot-blink {
-          animation: dotBlink 1s infinite ease-in-out;
-        }
+        .dot-blink { animation: dotBlink 1s infinite ease-in-out; }
         .starter-btn:hover {
           background: rgba(138, 153, 230, 0.08) !important;
           border-color: rgba(138, 153, 230, 0.2) !important;
@@ -216,3 +196,5 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
     </div>
   );
 }
+
+export default memo(ZenChat);

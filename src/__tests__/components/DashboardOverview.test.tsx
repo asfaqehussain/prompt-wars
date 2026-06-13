@@ -94,7 +94,7 @@ describe("DashboardOverview", () => {
 
   it("should have SVG chart with aria-label", () => {
     render(<DashboardOverview {...defaultProps} />);
-    const chart = screen.getByLabelText(/Stress trend chart/i);
+    const chart = screen.getByLabelText(/stress level trend chart/i);
     expect(chart).toBeInTheDocument();
   });
 
