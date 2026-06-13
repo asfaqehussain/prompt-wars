@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { sendChatMessage } from "@/lib/api";
 
 interface Message {
   role: "user" | "model";
@@ -10,6 +11,13 @@ interface Message {
 interface ZenChatProps {
   exam: string;
 }
+
+const starterPrompts = [
+  "I'm feeling extremely overwhelmed by my syllabus.",
+  "My mock test scores are making me doubt myself.",
+  "I can't sleep because of exam thoughts.",
+  "My parents are keeping high expectations of me.",
+];
 
 export default function ZenChat({ exam }: ZenChatProps) {
   const [messages, setMessages] = useState<Message[]>([
@@ -24,24 +32,11 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto scroll to bottom
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // Pre-configured student stress prompts
-  const starterPrompts = [
-    "I'm feeling extremely overwhelmed by my syllabus.",
-    "My mock test scores are making me doubt myself.",
-    "I can't sleep because of exam thoughts.",
-    "My parents are keeping high expectations of me."
-  ];
-
-  const handleSend = async (textToSend: string) => {
+  const handleSend = useCallback(async (textToSend: string) => {
     if (!textToSend.trim()) return;
 
     const newMessages: Message[] = [...messages, { role: "user", content: textToSend }];
@@ -50,17 +45,7 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
     setLoading(true);
 
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, exam }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to communicate with chatbot");
-      }
-
+      const data = await sendChatMessage(newMessages, exam);
       setMessages((prev) => [...prev, { role: "model", content: data.content }]);
     } catch (error: unknown) {
       console.error(error);
@@ -74,10 +59,10 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
     } finally {
       setLoading(false);
     }
-  };
+  }, [messages, exam]);
 
   // Helper to format chatbot responses into line breaks/lists safely without complex libraries
-  const formatMessage = (content: string) => {
+  const formatMessage = useCallback((content: string) => {
     return content.split("\n").map((line, idx) => {
       // Bold items **text**
       let formattedLine = line;
@@ -121,7 +106,7 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
         </p>
       );
     });
-  };
+  }, []);
 
   return (
     <div className="glass-card animate-fade-in" style={{ display: "flex", flexDirection: "column", height: "550px", padding: "16px" }}>

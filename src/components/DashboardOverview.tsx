@@ -1,6 +1,8 @@
 "use client";
 
+import { useMemo, useCallback } from "react";
 import type { MoodLog, CoachPlan } from "@/lib/types";
+import { calculateAverageStress, getStressLevel, getReadinessScore } from "@/lib/utils";
 
 interface DashboardOverviewProps {
   exam: string;
@@ -10,62 +12,47 @@ interface DashboardOverviewProps {
   activePlan?: CoachPlan | null;
 }
 
-export default function DashboardOverview({
+const exams = ["JEE Main/Advanced", "NEET", "UPSC Civil Services", "CAT (IIMs)", "GATE", "Board Exams (10th/12th)", "General Studies"];
+
+const SVG_WIDTH = 500;
+const SVG_HEIGHT = 150;
+const SVG_PADDING = 30;
+
+const EMPTY_LOGS: MoodLog[] = [];
+
+function DashboardOverview({
   exam,
   setExam,
-  logs,
+  logs = EMPTY_LOGS,
   onNavigateToTab,
   activePlan,
 }: DashboardOverviewProps) {
-  // Calculate average stress score
-  const latestLog = logs[0];
-  const averageStress = logs.length > 0
-    ? Math.round(logs.reduce((acc, l) => acc + l.stressScore, 0) / logs.length)
-    : 0;
+  const averageStress = useMemo(() => calculateAverageStress(logs), [logs]);
+  const stressLevel = useMemo(() => getStressLevel(averageStress), [averageStress]);
+  const readinessScore = useMemo(() => getReadinessScore(logs), [logs]);
 
-  // Stress Level categorization details
-  let stressLevelLabel = "Balanced";
-  let stressColor = "var(--stress-low)";
-  let stressAdvice = "You are maintaining a great balance. Keep doing what you are doing!";
+  const points = useMemo(() => {
+    const pts = logs
+      .slice()
+      .reverse()
+      .map((log, index) => {
+        if (logs.length === 0) return { x: 0, y: 0, score: 0, date: "" };
+        const x = SVG_PADDING + (index * (SVG_WIDTH - SVG_PADDING * 2)) / Math.max(logs.length - 1, 1);
+        const y = SVG_HEIGHT - SVG_PADDING - (log.stressScore * (SVG_HEIGHT - SVG_PADDING * 2)) / 100;
+        return { x, y, score: log.stressScore, date: log.date };
+      });
+    return pts;
+  }, [logs]);
 
-  if (averageStress > 75) {
-    stressLevelLabel = "High Stress / Burnout Danger";
-    stressColor = "var(--stress-high)";
-    stressAdvice = "Your body is showing signs of extreme fatigue. Please prioritize rest today.";
-  } else if (averageStress > 45) {
-    stressLevelLabel = "Moderate Exam Anxiety";
-    stressColor = "var(--stress-med)";
-    stressAdvice = "Slightly elevated stress. Perfect time for a brief 5-minute breathing session.";
-  }
+  const pathD = useMemo(() => {
+    if (points.length <= 1) return "";
+    return `M ${points[0].x} ${points[0].y} ` + points.slice(1).map((p) => `L ${p.x} ${p.y}`).join(" ");
+  }, [points]);
 
-  // Predefined exam options
-  const exams = ["JEE Main/Advanced", "NEET", "UPSC Civil Services", "CAT (IIMs)", "GATE", "Board Exams (10th/12th)", "General Studies"];
-
-  // SVG dimensions for history graph
-  const width = 500;
-  const height = 150;
-  const padding = 30;
-
-  // Generate SVG coordinates for history graph
-  const points = logs
-    .slice()
-    .reverse()
-    .map((log, index) => {
-      if (logs.length === 0) return { x: 0, y: 0 };
-      const x = padding + (index * (width - padding * 2)) / Math.max(logs.length - 1, 1);
-      // y-axis is inverted: 0 is at top, height is at bottom. Stress score 100 should be near the top (y=20), score 0 near bottom (y=height-padding)
-      const y = height - padding - (log.stressScore * (height - padding * 2)) / 100;
-      return { x, y, score: log.stressScore, date: log.date };
-    });
-
-  // Create SVG path string
-  const pathD = points.length > 1
-    ? `M ${points[0].x} ${points[0].y} ` + points.slice(1).map(p => `L ${p.x} ${p.y}`).join(" ")
-    : "";
+  const handleNav = useCallback((tab: string) => () => onNavigateToTab(tab), [onNavigateToTab]);
 
   return (
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      {/* Header Profile / Exam Target Config */}
       <div className="glass-card" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "16px" }}>
         <div>
           <span style={{ fontSize: "14px", color: "var(--text-secondary)", letterSpacing: "1px", textTransform: "uppercase" }}>Wellness Companion</span>
@@ -88,30 +75,14 @@ export default function DashboardOverview({
         </div>
       </div>
 
-      {/* Main Stats Widgets */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "24px" }}>
-        {/* Stress Meter Card */}
         <div className="glass-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", justifyContent: "center" }}>
-          <h3 style={{ alignSelf: "flex-start", marginBottom: "16px", fontSize: "18px" }}>Stress index Meter</h3>
-          
+          <h3 style={{ alignSelf: "flex-start", marginBottom: "16px", fontSize: "18px" }}>Stress Index Meter</h3>
           <div style={{ position: "relative", width: "160px", height: "160px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px" }}>
-            {/* SVG Arc Gauge */}
-              <svg width="160" height="160" viewBox="0 0 160 160" aria-label="Stress trend chart">
+            <svg width="160" height="160" viewBox="0 0 160 160" aria-label="Stress trend chart">
+              <circle cx="80" cy="80" r="65" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="10" />
               <circle
-                cx="80"
-                cy="80"
-                r="65"
-                fill="none"
-                stroke="rgba(255,255,255,0.05)"
-                strokeWidth="10"
-              />
-              <circle
-                cx="80"
-                cy="80"
-                r="65"
-                fill="none"
-                stroke={stressColor}
-                strokeWidth="10"
+                cx="80" cy="80" r="65" fill="none" stroke={stressLevel.color} strokeWidth="10"
                 strokeDasharray={`${2 * Math.PI * 65}`}
                 strokeDashoffset={`${2 * Math.PI * 65 * (1 - averageStress / 100)}`}
                 strokeLinecap="round"
@@ -123,40 +94,60 @@ export default function DashboardOverview({
               <span style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1px" }}>Stress Score</span>
             </div>
           </div>
-
-          <h4 style={{ color: stressColor, fontSize: "16px", marginBottom: "8px" }}>{stressLevelLabel}</h4>
-          <p style={{ fontSize: "13px", color: "var(--text-secondary)", maxWidth: "260px" }}>{stressAdvice}</p>
+          <h4 style={{ color: stressLevel.color, fontSize: "16px", marginBottom: "8px" }}>{stressLevel.label}</h4>
+          <p style={{ fontSize: "13px", color: "var(--text-secondary)", maxWidth: "260px" }}>{stressLevel.advice}</p>
         </div>
 
-        {/* Emotion / Current State Card */}
+        <div className="glass-card" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <h3 style={{ fontSize: "18px" }}>Readiness Score</h3>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", padding: "10px 0" }}>
+            <div style={{ position: "relative", width: "120px", height: "120px" }}>
+              <svg width="120" height="120" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
+                <circle
+                  cx="60" cy="60" r="50" fill="none" stroke={readinessScore > 60 ? "var(--stress-low)" : "var(--stress-med)"} strokeWidth="8"
+                  strokeDasharray={`${2 * Math.PI * 50}`}
+                  strokeDashoffset={`${2 * Math.PI * 50 * (1 - readinessScore / 100)}`}
+                  strokeLinecap="round"
+                  style={{ transition: "stroke-dashoffset 1s ease", transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
+                />
+              </svg>
+              <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontSize: "28px", fontWeight: "800", fontFamily: "var(--font-display)" }}>{readinessScore}%</span>
+              </div>
+            </div>
+            <p style={{ fontSize: "13px", color: "var(--text-secondary)", textAlign: "center" }}>
+              {readinessScore > 70
+                ? "You're in good shape. Keep balancing study and rest."
+                : "Consider more rest and mindfulness to boost readiness."}
+            </p>
+          </div>
+        </div>
+
         <div className="glass-card" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <h3 style={{ fontSize: "18px" }}>Latest Emotional Diagnosis</h3>
-          {latestLog ? (
+          {logs[0] ? (
             <div style={{ display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between" }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
-                  <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }}>
-                    🧘
-                  </div>
+                  <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }}>🧘</div>
                   <div>
                     <h4 style={{ fontSize: "15px" }}>Primary State</h4>
-                    <p style={{ color: "var(--primary)", fontWeight: "500", fontSize: "14px" }}>{latestLog.emotion}</p>
+                    <p style={{ color: "var(--primary)", fontWeight: "500", fontSize: "14px" }}>{logs[0].emotion}</p>
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }}>
-                    📅
-                  </div>
+                  <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }}>📅</div>
                   <div>
                     <h4 style={{ fontSize: "15px" }}>Logged On</h4>
-                    <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>{latestLog.date}</p>
+                    <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>{logs[0].date}</p>
                   </div>
                 </div>
               </div>
-              <button 
+              <button
                 id="dashboard-log-entry-btn"
-                className="premium-btn" 
-                onClick={() => onNavigateToTab("journal")}
+                className="premium-btn"
+                onClick={handleNav("journal")}
                 style={{ padding: "10px 16px", fontSize: "13px", alignSelf: "flex-start", marginTop: "16px" }}
                 aria-label="Log a new journal entry"
               >
@@ -166,18 +157,13 @@ export default function DashboardOverview({
           ) : (
             <div style={{ display: "flex", flexDirection: "column", justifySelf: "center", textAlign: "center", padding: "20px 0", gap: "12px" }}>
               <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>No wellness log logged today. Write in your stress journal to analyze triggers!</p>
-              <button 
-                className="premium-btn" 
-                onClick={() => onNavigateToTab("journal")}
-                style={{ padding: "10px 16px", fontSize: "13px", alignSelf: "center" }}
-              >
+              <button className="premium-btn" onClick={handleNav("journal")} style={{ padding: "10px 16px", fontSize: "13px", alignSelf: "center" }}>
                 Write First Log
               </button>
             </div>
           )}
         </div>
 
-        {/* AI Preparation Coach Card */}
         <div className="glass-card" style={{ display: "flex", flexDirection: "column", gap: "16px", justifyContent: "space-between" }}>
           <div>
             <h3 style={{ fontSize: "18px", marginBottom: "8px" }}>AI Study Coach & Planner</h3>
@@ -187,7 +173,7 @@ export default function DashboardOverview({
                   🎯 Active: {activePlan.coachTitle}
                 </p>
                 <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-                  Your study budget is set to **{activePlan.dailyRoutineSplits?.studyHours || 4} hours/day**. 
+                  Your study budget is set to **{activePlan.dailyRoutineSplits?.studyHours || 4} hours/day**.
                   Open the coach view to check weekly milestones.
                 </p>
               </div>
@@ -197,10 +183,10 @@ export default function DashboardOverview({
               </p>
             )}
           </div>
-          <button 
+          <button
             id="dashboard-coach-btn"
-            className="premium-btn" 
-            onClick={() => onNavigateToTab("coach")}
+            className="premium-btn"
+            onClick={handleNav("coach")}
             style={{ padding: "10px 16px", fontSize: "13px", alignSelf: "flex-start" }}
           >
             {activePlan ? "View Active Roadmap" : "Start Analysis"}
@@ -208,68 +194,26 @@ export default function DashboardOverview({
         </div>
       </div>
 
-      {/* Mood/Stress History Visualizer (SVG) */}
       <div className="glass-card">
-        <h3 style={{ fontSize: "18px", marginBottom: "16px" }}>5-Log Stress Trend</h3>
+        <h3 style={{ fontSize: "18px", marginBottom: "16px" }}>Stress Trend & Weekly Progress</h3>
         {logs.length > 1 ? (
           <div style={{ overflowX: "auto" }}>
             <div style={{ minWidth: "500px", position: "relative" }}>
-              <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
-                {/* Horizontal reference grid lines */}
-                <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                <line x1={padding} y1={height / 2} x2={width - padding} y2={height / 2} stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-
-                {/* Y-axis labels */}
-                <text x={padding - 10} y={padding + 4} fill="var(--text-muted)" fontSize="10" textAnchor="end">100%</text>
-                <text x={padding - 10} y={height / 2 + 4} fill="var(--text-muted)" fontSize="10" textAnchor="end">50%</text>
-                <text x={padding - 10} y={height - padding + 4} fill="var(--text-muted)" fontSize="10" textAnchor="end">0%</text>
-
-                {/* Trend line */}
+              <svg width="100%" height={SVG_HEIGHT} viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} style={{ overflow: "visible" }}>
+                <line x1={SVG_PADDING} y1={SVG_PADDING} x2={SVG_WIDTH - SVG_PADDING} y2={SVG_PADDING} stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+                <line x1={SVG_PADDING} y1={SVG_HEIGHT / 2} x2={SVG_WIDTH - SVG_PADDING} y2={SVG_HEIGHT / 2} stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+                <line x1={SVG_PADDING} y1={SVG_HEIGHT - SVG_PADDING} x2={SVG_WIDTH - SVG_PADDING} y2={SVG_HEIGHT - SVG_PADDING} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                <text x={SVG_PADDING - 10} y={SVG_PADDING + 4} fill="var(--text-muted)" fontSize="10" textAnchor="end">100%</text>
+                <text x={SVG_PADDING - 10} y={SVG_HEIGHT / 2 + 4} fill="var(--text-muted)" fontSize="10" textAnchor="end">50%</text>
+                <text x={SVG_PADDING - 10} y={SVG_HEIGHT - SVG_PADDING + 4} fill="var(--text-muted)" fontSize="10" textAnchor="end">0%</text>
                 {pathD && (
-                  <path
-                    d={pathD}
-                    fill="none"
-                    stroke="var(--primary)"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                  <path d={pathD} fill="none" stroke="var(--primary)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                 )}
-
-                {/* Data points */}
                 {points.map((p, i) => (
                   <g key={i}>
-                    <circle
-                      cx={p.x}
-                      cy={p.y}
-                      r="5"
-                      fill="var(--accent)"
-                      stroke="var(--bg-gradient-start)"
-                      strokeWidth="2"
-                    />
-                    {/* Tooltip score label */}
-                    <text
-                      x={p.x}
-                      y={p.y - 12}
-                      fill="var(--text-primary)"
-                      fontSize="10"
-                      fontWeight="bold"
-                      textAnchor="middle"
-                      style={{ background: "#000" }}
-                    >
-                      {p.score}%
-                    </text>
-                    {/* Date X-axis label */}
-                    <text
-                      x={p.x}
-                      y={height - 10}
-                      fill="var(--text-secondary)"
-                      fontSize="9"
-                      textAnchor="middle"
-                    >
-                      {p.date}
-                    </text>
+                    <circle cx={p.x} cy={p.y} r="5" fill="var(--accent)" stroke="var(--bg-gradient-start)" strokeWidth="2" />
+                    <text x={p.x} y={p.y - 12} fill="var(--text-primary)" fontSize="10" fontWeight="bold" textAnchor="middle">{p.score}%</text>
+                    <text x={p.x} y={SVG_HEIGHT - 10} fill="var(--text-secondary)" fontSize="9" textAnchor="middle">{p.date}</text>
                   </g>
                 ))}
               </svg>
@@ -282,57 +226,35 @@ export default function DashboardOverview({
         )}
       </div>
 
-      {/* Guided Quick Stress Reliever Cards */}
       <div className="glass-card">
         <h3 style={{ fontSize: "18px", marginBottom: "16px" }}>Instant Anxiety Defuser</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
-          <div 
-            className="glass-card glass-card-interactive" 
-            onClick={() => onNavigateToTab("mindfulness")}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigateToTab("mindfulness"); } }}
-            style={{ padding: "16px", display: "flex", gap: "12px", alignItems: "center", cursor: "pointer" }}
-            aria-label="Start 4-7-8 Breathing exercise"
-            role="button"
-            tabIndex={0}
-          >
-            <span style={{ fontSize: "24px" }}>🌬️</span>
-            <div>
-              <h4 style={{ fontSize: "14px", marginBottom: "2px" }}>4-7-8 Breathing</h4>
-              <p style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Instant calming in 60s.</p>
+          {[
+            { icon: "🌬️", title: "4-7-8 Breathing", desc: "Instant calming in 60s.", tab: "mindfulness" },
+            { icon: "💬", title: "Talk with Asha", desc: "Share self-doubt secretly.", tab: "chat" },
+            { icon: "🎵", title: "Calming Soundscapes", desc: "Study beat ambient mixer.", tab: "mindfulness" },
+          ].map((item) => (
+            <div
+              key={item.tab + item.title}
+              className="glass-card glass-card-interactive"
+              onClick={handleNav(item.tab)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigateToTab(item.tab); } }}
+              style={{ padding: "16px", display: "flex", gap: "12px", alignItems: "center", cursor: "pointer" }}
+              role="button"
+              tabIndex={0}
+              aria-label={`${item.title} - ${item.desc}`}
+            >
+              <span style={{ fontSize: "24px" }}>{item.icon}</span>
+              <div>
+                <h4 style={{ fontSize: "14px", marginBottom: "2px" }}>{item.title}</h4>
+                <p style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{item.desc}</p>
+              </div>
             </div>
-          </div>
-          <div 
-            className="glass-card glass-card-interactive" 
-            onClick={() => onNavigateToTab("chat")}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigateToTab("chat"); } }}
-            style={{ padding: "16px", display: "flex", gap: "12px", alignItems: "center", cursor: "pointer" }}
-            role="button"
-            tabIndex={0}
-            aria-label="Talk with Asha"
-          >
-            <span style={{ fontSize: "24px" }}>💬</span>
-            <div>
-              <h4 style={{ fontSize: "14px", marginBottom: "2px" }}>Talk with Asha</h4>
-              <p style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Share self-doubt secretly.</p>
-            </div>
-          </div>
-          <div 
-            className="glass-card glass-card-interactive" 
-            onClick={() => onNavigateToTab("mindfulness")}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigateToTab("mindfulness"); } }}
-            style={{ padding: "16px", display: "flex", gap: "12px", alignItems: "center", cursor: "pointer" }}
-            role="button"
-            tabIndex={0}
-            aria-label="Open calming soundscapes"
-          >
-            <span style={{ fontSize: "24px" }}>🎵</span>
-            <div>
-              <h4 style={{ fontSize: "14px", marginBottom: "2px" }}>Calming Soundscapes</h4>
-              <p style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Study beat ambient mixer.</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>
   );
 }
+
+export default DashboardOverview;

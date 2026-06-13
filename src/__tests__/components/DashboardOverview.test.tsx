@@ -100,7 +100,7 @@ describe("DashboardOverview", () => {
 
   it("should navigate to mindfulness on breathing card click", () => {
     render(<DashboardOverview {...defaultProps} />);
-    const card = screen.getByLabelText("Start 4-7-8 Breathing exercise");
+    const card = screen.getByLabelText(/4-7-8 Breathing/i);
     fireEvent.click(card);
     expect(defaultProps.onNavigateToTab).toHaveBeenCalledWith("mindfulness");
   });

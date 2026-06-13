@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { CoachPlan } from "@/lib/types";
+import { generateCoachRoadmap } from "@/lib/api";
 
 interface AICoachProps {
   activePlan: CoachPlan | null;
@@ -67,24 +68,13 @@ export default function AICoach({ activePlan, setActivePlan }: AICoachProps) {
     setActiveStep((prev) => prev - 1);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch("/api/coach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to generate coaching plan");
-      }
-
+      const data = await generateCoachRoadmap(formData as unknown as Record<string, unknown>);
       setActivePlan(data);
-      // Reset checklist states
       setCompletedMilestones({});
     } catch (err: unknown) {
       console.error(err);
@@ -92,7 +82,7 @@ export default function AICoach({ activePlan, setActivePlan }: AICoachProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [formData, setActivePlan]);
 
   const handleReset = () => {
     if (confirm("Are you sure you want to delete your current roadmap and start analysis again?")) {

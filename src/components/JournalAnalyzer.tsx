@@ -1,11 +1,19 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { analyzeJournal } from "@/lib/api";
+import { getStressColor } from "@/lib/utils";
 
 interface JournalAnalyzerProps {
   exam: string;
   onAnalysisSuccess: (analysis: { stressScore: number; emotion: string; date: string }) => void;
 }
+
+const prompts = [
+  { title: "Mock Test Distress", body: "I got my mock test results today and my score was way below what I expected. I feel like my preparation is going backwards and I'm losing confidence." },
+  { title: "Syllabus Overwhelm", body: "There is so much backlog to complete in physics and chemistry. The exam is getting closer and I feel frozen, unable to decide where to start studying." },
+  { title: "Family Expectations", body: "I feel stressed about my parents' expectations. They are supporting me so much, but I'm constantly terrified of letting them down if I don't clear the cutoff." },
+];
 
 export default function JournalAnalyzer({ exam, onAnalysisSuccess }: JournalAnalyzerProps) {
   const [text, setText] = useState("");
@@ -90,14 +98,7 @@ export default function JournalAnalyzer({ exam, onAnalysisSuccess }: JournalAnal
     };
   }, []);
 
-  // Predefined prompts to help students kickstart journaling
-  const prompts = [
-    { title: "Mock Test Distress", body: "I got my mock test results today and my score was way below what I expected. I feel like my preparation is going backwards and I'm losing confidence." },
-    { title: "Syllabus Overwhelm", body: "There is so much backlog to complete in physics and chemistry. The exam is getting closer and I feel frozen, unable to decide where to start studying." },
-    { title: "Family Expectations", body: "I feel stressed about my parents' expectations. They are supporting me so much, but I'm constantly terrified of letting them down if I don't clear the cutoff." },
-  ];
-
-  const handleAnalyze = async () => {
+  const handleAnalyze = useCallback(async () => {
     if (!text.trim()) {
       setError("Please write down your thoughts or use a sample template first.");
       return;
@@ -108,20 +109,10 @@ export default function JournalAnalyzer({ exam, onAnalysisSuccess }: JournalAnal
     setAnalysisResult(null);
 
     try {
-      const response = await fetch("/api/wellness", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ journalText: text, exam }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to analyze journal entry");
-      }
+      const data = await analyzeJournal(text, exam);
 
       setAnalysisResult(data);
-      
-      // Notify parent to log this entry
+
       const currentDate = new Date().toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
@@ -137,14 +128,7 @@ export default function JournalAnalyzer({ exam, onAnalysisSuccess }: JournalAnal
     } finally {
       setLoading(false);
     }
-  };
-
-  // Stress Score color styling helper
-  const getStressColor = (score: number) => {
-    if (score > 75) return "var(--stress-high)";
-    if (score > 45) return "var(--stress-med)";
-    return "var(--stress-low)";
-  };
+  }, [text, exam, onAnalysisSuccess]);
 
   return (
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>

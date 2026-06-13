@@ -3,7 +3,7 @@
  * Tests: rendering, navigation, theme toggling, accessibility.
  */
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import Home from "@/app/page";
 
 // Mock all child components to isolate page-level logic
@@ -55,33 +55,43 @@ describe("Home Page", () => {
     expect(screen.getByText("Asha")).toBeInTheDocument();
   });
 
-  it("should show dashboard by default", () => {
+  it("should show dashboard by default", async () => {
     render(<Home />);
-    expect(screen.getByTestId("dashboard-view")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("dashboard-view")).toBeInTheDocument();
+    });
   });
 
-  it("should navigate to AI Coach tab on click", () => {
+  it("should navigate to AI Coach tab on click", async () => {
     render(<Home />);
     fireEvent.click(screen.getByText("AI Study Coach"));
-    expect(screen.getByTestId("coach-view")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("coach-view")).toBeInTheDocument();
+    });
   });
 
-  it("should navigate to Journal tab on click", () => {
+  it("should navigate to Journal tab on click", async () => {
     render(<Home />);
     fireEvent.click(screen.getByText("AI Journal Analyzer"));
-    expect(screen.getByTestId("journal-view")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("journal-view")).toBeInTheDocument();
+    });
   });
 
-  it("should navigate to Chat tab on click", () => {
+  it("should navigate to Chat tab on click", async () => {
     render(<Home />);
     fireEvent.click(screen.getByText("Asha Chat Companion"));
-    expect(screen.getByTestId("chat-view")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("chat-view")).toBeInTheDocument();
+    });
   });
 
-  it("should navigate to Mindfulness tab on click", () => {
+  it("should navigate to Mindfulness tab on click", async () => {
     render(<Home />);
     fireEvent.click(screen.getByText("Mindfulness Hub"));
-    expect(screen.getByTestId("mindfulness-view")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("mindfulness-view")).toBeInTheDocument();
+    });
   });
 
   it("should have a theme toggle button", () => {
