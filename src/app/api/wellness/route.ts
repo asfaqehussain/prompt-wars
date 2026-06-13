@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { validateTextInput, INPUT_LIMITS } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {
   try {
@@ -7,6 +8,11 @@ export async function POST(req: NextRequest) {
 
     if (!journalText || journalText.trim().length === 0) {
       return NextResponse.json({ error: "Journal entry cannot be empty" }, { status: 400 });
+    }
+
+    const textValidation = validateTextInput(journalText, "Journal entry", INPUT_LIMITS.JOURNAL_TEXT);
+    if (!textValidation.valid) {
+      return NextResponse.json({ error: textValidation.error }, { status: 400 });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -46,10 +52,10 @@ Ensure the encouragement is deeply empathetic, recognizing their hard work towar
     const parsedData = JSON.parse(resultText);
 
     return NextResponse.json(parsedData);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Gemini API Error:", error);
     return NextResponse.json(
-      { error: "Error communicating with AI. Falling back to safe analysis.", details: error.message },
+      { error: "Error communicating with AI. Falling back to safe analysis.", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

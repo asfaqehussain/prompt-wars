@@ -12,23 +12,23 @@ export default function MindfulnessHub() {
   // Audio mixer states
   const [rainActive, setRainActive] = useState(false);
   const [wavesActive, setWavesActive] = useState(false);
-  const [bowlVolume, setBowlVolume] = useState(0.5);
+  const bowlVolume = 0.5;
 
   // Web Audio Context reference for synthesized sounds
   const audioCtxRef = useRef<AudioContext | null>(null);
   
   // Synthesized nodes refs
-  const rainNodeRef = useRef<AudioWorkletNode | ScriptProcessorNode | null>(null);
+  const rainNodeRef = useRef<{ stop: (when?: number) => void } | null>(null);
   const rainGainRef = useRef<GainNode | null>(null);
   
-  const wavesNodeRef = useRef<ScriptProcessorNode | null>(null);
+  const wavesNodeRef = useRef<{ stop: (when?: number) => void } | null>(null);
   const wavesGainRef = useRef<GainNode | null>(null);
   const wavesLfoRef = useRef<OscillatorNode | null>(null);
 
   // Initialize Audio Context on demand
   const initAudio = () => {
     if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioCtxRef.current = new (window.AudioContext || (window as unknown as Record<string, unknown>).webkitAudioContext)();
     }
     if (audioCtxRef.current.state === "suspended") {
       audioCtxRef.current.resume();
@@ -78,15 +78,15 @@ export default function MindfulnessHub() {
 
     noiseSource.start(0);
     
-    rainNodeRef.current = noiseSource as any;
+    rainNodeRef.current = noiseSource;
     rainGainRef.current = gain;
   };
 
   const stopRain = () => {
     if (rainNodeRef.current) {
       try {
-        (rainNodeRef.current as any).stop();
-      } catch (e) {}
+        rainNodeRef.current.stop();
+      } catch { /* ignore */ }
       rainNodeRef.current = null;
     }
   };
@@ -133,7 +133,7 @@ export default function MindfulnessHub() {
     lfo.start();
     noiseSource.start(0);
 
-    wavesNodeRef.current = noiseSource as any;
+    wavesNodeRef.current = noiseSource;
     wavesGainRef.current = gain;
     wavesLfoRef.current = lfo;
   };
@@ -141,14 +141,14 @@ export default function MindfulnessHub() {
   const stopWaves = () => {
     if (wavesNodeRef.current) {
       try {
-        (wavesNodeRef.current as any).stop();
-      } catch (e) {}
+        wavesNodeRef.current.stop();
+      } catch { /* ignore */ }
       wavesNodeRef.current = null;
     }
     if (wavesLfoRef.current) {
       try {
         wavesLfoRef.current.stop();
-      } catch (e) {}
+      } catch { /* ignore */ }
       wavesLfoRef.current = null;
     }
   };
@@ -206,15 +206,23 @@ export default function MindfulnessHub() {
     }
   };
 
+  const handleToggleBreathing = () => {
+    if (breathingActive) {
+      setBreathingActive(false);
+      setBreatheState("ready");
+      setBreatheTimer(0);
+    } else {
+      setBreathingActive(true);
+    }
+  };
+
   // Manage breathing loop intervals
   useEffect(() => {
     if (!breathingActive) {
-      setBreatheState("ready");
-      setBreatheTimer(0);
       return;
     }
 
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setInterval>;
     
     const runBreathingCycle = () => {
       if (breatheType === "478") {
@@ -252,13 +260,13 @@ export default function MindfulnessHub() {
                     runBreathingCycle();
                   }
                 }, 1000);
-                timer = exhaleInterval as any;
+                timer = exhaleInterval;
               }
             }, 1000);
-            timer = holdInterval as any;
+            timer = holdInterval;
           }
         }, 1000);
-        timer = interval as any;
+        timer = interval;
       } else {
         // Box Breathing: Inhale 4s, Hold 4s, Exhale 4s, Hold 4s
         setBreatheState("inhale");
@@ -303,16 +311,16 @@ export default function MindfulnessHub() {
                         runBreathingCycle();
                       }
                     }, 1000);
-                    timer = hold2Interval as any;
-                  }
-                }, 1000);
-                timer = exhaleInterval as any;
+                timer = hold2Interval;
               }
             }, 1000);
-            timer = hold1Interval as any;
+            timer = exhaleInterval;
           }
         }, 1000);
-        timer = interval as any;
+        timer = hold1Interval;
+      }
+    }, 1000);
+    timer = interval;
       }
     };
 
@@ -396,7 +404,7 @@ export default function MindfulnessHub() {
         <div style={{ marginTop: "16px" }}>
           <button
             className="premium-btn"
-            onClick={() => setBreathingActive(!breathingActive)}
+            onClick={handleToggleBreathing}
             style={{ minWidth: "160px" }}
           >
             {breathingActive ? "Pause Exercise" : "Start Exercise"}

@@ -62,7 +62,7 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
       }
 
       setMessages((prev) => [...prev, { role: "model", content: data.content }]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       setMessages((prev) => [
         ...prev,

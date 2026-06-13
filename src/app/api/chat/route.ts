@@ -33,7 +33,7 @@ Guidelines:
    - Vandrevala Foundation (91-9999666555)
    State this gently, warmly, and express care.`;
 
-    const contents = messages.map((m: any) => ({
+    const contents = messages.map((m: { role: string; content: string }) => ({
       role: m.role,
       parts: [{ text: m.content }]
     }));
@@ -49,10 +49,10 @@ Guidelines:
     const text = response.text || "I'm here for you. Tell me more about what's going on.";
 
     return NextResponse.json({ role: "model", content: text });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Gemini Chat API Error:", error);
     return NextResponse.json(
-      { error: "Error communicating with chatbot.", details: error.message },
+      { error: "Error communicating with chatbot.", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

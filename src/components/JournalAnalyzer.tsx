@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 interface JournalAnalyzerProps {
   exam: string;
@@ -12,59 +12,81 @@ export default function JournalAnalyzer({ exam, onAnalysisSuccess }: JournalAnal
   const [isListening, setIsListening] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [analysisResult, setAnalysisResult] = useState<{
+    stressScore: number;
+    primaryEmotion: string;
+    triggers: string[];
+    copingStrategies: string[];
+    encouragement: string;
+  } | null>(null);
+  const recognitionRef = useRef<Record<string, unknown> | null>(null);
 
-  // Web Speech API configuration
-  let recognition: any = null;
-  if (typeof window !== "undefined") {
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = false;
-      recognition.lang = "en-IN"; // Set to Indian English context
+  // Initialize Web Speech API once
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const win = window as unknown as Record<string, unknown>;
+      const SpeechRecognition: unknown = win.SpeechRecognition || win.webkitSpeechRecognition;
+      if (typeof SpeechRecognition === "function") {
+        const RecognitionCtor = SpeechRecognition as new () => Record<string, unknown>;
+        const recognition = new RecognitionCtor();
+        (recognition as Record<string, unknown>).continuous = true;
+        (recognition as Record<string, unknown>).interimResults = false;
+        (recognition as Record<string, unknown>).lang = "en-IN";
+        recognitionRef.current = recognition;
+      }
     }
-  }
+  }, []);
 
   const toggleListening = () => {
+    const recognition = recognitionRef.current;
     if (!recognition) {
       alert("Speech recognition is not supported in this browser. Please try Chrome or Safari.");
       return;
     }
 
     if (isListening) {
-      recognition.stop();
+      (recognition as unknown as { stop: () => void }).stop();
       setIsListening(false);
     } else {
       setIsListening(true);
       setError("");
-      recognition.start();
+      (recognition as unknown as { start: () => void }).start();
     }
   };
 
   useEffect(() => {
+    const recognition = recognitionRef.current;
     if (!recognition) return;
 
-    recognition.onresult = (event: any) => {
-      const speechToText = event.results[event.results.length - 1][0].transcript;
-      setText((prev) => prev + (prev ? " " : "") + speechToText);
+    const handleResult = (event: Event) => {
+      const speechEvent = event as unknown as { results: Array<Array<{ transcript: string }>> };
+      const results = speechEvent.results;
+      const lastResult = results[results.length - 1];
+      const transcript = lastResult[0].transcript;
+      setText((prev) => prev + (prev ? " " : "") + transcript);
     };
 
-    recognition.onerror = (event: any) => {
-      console.error("Speech Error:", event.error);
+    const handleError = (event: Event) => {
+      const err = event as unknown as { error: string };
+      console.error("Speech Error:", err.error);
       setIsListening(false);
-      setError("Speech recognition encountered an error: " + event.error);
+      setError("Speech recognition encountered an error: " + err.error);
     };
 
-    recognition.onend = () => {
+    const handleEnd = () => {
       setIsListening(false);
     };
+
+    const rec = recognition as unknown as { addEventListener: (ev: string, cb: (e: Event) => void) => void; removeEventListener: (ev: string, cb: (e: Event) => void) => void; stop: () => void };
+    rec.addEventListener("result", handleResult);
+    rec.addEventListener("error", handleError);
+    rec.addEventListener("end", handleEnd);
 
     return () => {
-      if (recognition) {
-        recognition.stop();
-      }
+      rec.removeEventListener("result", handleResult);
+      rec.removeEventListener("error", handleError);
+      rec.removeEventListener("end", handleEnd);
+      rec.stop();
     };
   }, []);
 
@@ -109,9 +131,9 @@ export default function JournalAnalyzer({ exam, onAnalysisSuccess }: JournalAnal
         emotion: data.primaryEmotion,
         date: currentDate,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || "Something went wrong during GenAI analysis.");
+      setError(err instanceof Error ? err.message : "Something went wrong during GenAI analysis.");
     } finally {
       setLoading(false);
     }
@@ -304,7 +326,7 @@ export default function JournalAnalyzer({ exam, onAnalysisSuccess }: JournalAnal
           >
             <span style={{ fontSize: "20px", marginRight: "8px", verticalAlign: "middle" }}>🌿</span>
             <strong style={{ color: "var(--secondary)" }}>Empathetic Companion Note:</strong>
-            <p style={{ marginTop: "8px", fontStyle: "italic" }}>"{analysisResult.encouragement}"</p>
+            <p style={{ marginTop: "8px", fontStyle: "italic" }}>&ldquo;{analysisResult.encouragement}&rdquo;</p>
           </div>
         </div>
       )}

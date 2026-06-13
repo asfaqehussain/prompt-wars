@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       prepType = "Exam",
-      targetGoal = "General",
+      targetGoal,
       skillLevel = "Intermediate",
       targetDate = "",
       hoursPerDay = 4,
@@ -14,6 +14,15 @@ export async function POST(req: NextRequest) {
       weaknesses = "",
       notes = ""
     } = body;
+
+    if (!targetGoal || targetGoal.trim().length === 0) {
+      return NextResponse.json({ error: "Target goal is required" }, { status: 400 });
+    }
+
+    const hoursNum = Number(hoursPerDay);
+    if (hoursNum < 1 || hoursNum > 16) {
+      return NextResponse.json({ error: "Hours per day must be between 1 and 16" }, { status: 400 });
+    }
 
     const apiKey = process.env.GEMINI_API_KEY;
 
@@ -72,27 +81,23 @@ Provide a 4-week weeklySchedule breakdown. Ratios of dailyRoutineSplits should r
     const parsedData = JSON.parse(resultText);
 
     return NextResponse.json(parsedData);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("AI Coach API Error:", error);
     return NextResponse.json(
-      { error: "Error communicating with AI Coach.", details: error.message },
+      { error: "Error communicating with AI Coach.", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
 }
 
 // Generates highly tailored simulated study roadmaps
-function generateMockRoadmap(body: any) {
-  const {
-    prepType = "Exam",
-    targetGoal = "UPSC",
-    skillLevel = "Intermediate",
-    targetDate = "next month",
-    hoursPerDay = 4,
-    strengths = "Determination",
-    weaknesses = "Time management",
-    notes = ""
-  } = body;
+function generateMockRoadmap(body: Record<string, unknown>) {
+  const prepType = (body.prepType as string) || "Exam";
+  const targetGoal = (body.targetGoal as string) || "UPSC";
+  const skillLevel = (body.skillLevel as string) || "Intermediate";
+  const hoursPerDay = (body.hoursPerDay as number) || 4;
+  const strengths = (body.strengths as string) || "Determination";
+  const weaknesses = (body.weaknesses as string) || "Time management";
 
   const study = Number(hoursPerDay);
   // Recommend breaks and mindfulness based on study hours

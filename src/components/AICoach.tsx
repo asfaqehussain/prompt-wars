@@ -2,9 +2,18 @@
 
 import React, { useState, useEffect } from "react";
 
+interface CoachPlan {
+  coachTitle: string;
+  summary: string;
+  weeklySchedule: { week: string; milestones: string[]; wellnessFocus?: string }[];
+  strengthMaximizer?: string;
+  weaknessMitigation?: string;
+  dailyRoutineSplits: { studyHours: number; breakHours: number; mindfulnessMinutes: number; outline: string[] };
+}
+
 interface AICoachProps {
-  activePlan: any;
-  setActivePlan: (plan: any) => void;
+  activePlan: CoachPlan | null;
+  setActivePlan: (plan: CoachPlan | null) => void;
 }
 
 export default function AICoach({ activePlan, setActivePlan }: AICoachProps) {
@@ -85,9 +94,9 @@ export default function AICoach({ activePlan, setActivePlan }: AICoachProps) {
       setActivePlan(data);
       // Reset checklist states
       setCompletedMilestones({});
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || "Something went wrong creating your coach roadmap.");
+      setError(err instanceof Error ? err.message : "Something went wrong creating your coach roadmap.");
     } finally {
       setLoading(false);
     }
@@ -317,7 +326,7 @@ export default function AICoach({ activePlan, setActivePlan }: AICoachProps) {
       <div className="roadmap-grid">
         {/* Left Column: Weekly Roadmap Milestones */}
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          {activePlan.weeklySchedule?.map((schedule: any, weekIdx: number) => (
+          {activePlan.weeklySchedule?.map((schedule: { week: string; milestones: string[]; wellnessFocus?: string }, weekIdx: number) => (
             <div key={weekIdx} className="glass-card">
               <h4 style={{ fontSize: "16px", color: "var(--primary)", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "10px", marginBottom: "14px" }}>
                 {schedule.week}

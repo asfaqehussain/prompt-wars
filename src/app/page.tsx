@@ -6,18 +6,31 @@ import JournalAnalyzer from "../components/JournalAnalyzer";
 import ZenChat from "../components/ZenChat";
 import MindfulnessHub from "../components/MindfulnessHub";
 import AICoach from "../components/AICoach";
-
-interface MoodLog {
-  date: string;
-  stressScore: number;
-  emotion: string;
-}
+import type { CoachPlan, MoodLog } from "@/lib/types";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [exam, setExam] = useState("JEE Main/Advanced");
-  const [theme, setTheme] = useState("dark");
-  const [activePlan, setActivePlan] = useState<any>(null);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("asha_theme");
+      if (saved === "light") {
+        document.documentElement.classList.add("light-theme");
+        document.body.classList.add("light-theme");
+        return "light";
+      }
+    }
+    return "dark";
+  });
+  const [activePlan, setActivePlan] = useState<CoachPlan | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("asha_coach_plan");
+        return saved ? (JSON.parse(saved) as CoachPlan) : null;
+      } catch { /* ignore */ }
+    }
+    return null;
+  });
   const [scrolled, setScrolled] = useState(false);
   
   // Pre-populate with realistic mock logs representing JEE/NEET prep stress
@@ -36,21 +49,9 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Restore coach plan on mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("asha_coach_plan");
-      if (saved) {
-        try {
-          setActivePlan(JSON.parse(saved));
-        } catch (e) {
-          console.error("Error loading saved coach plan", e);
-        }
-      }
-    }
-  }, []);
 
-  const handleSetActivePlan = (plan: any) => {
+
+  const handleSetActivePlan = (plan: CoachPlan | null) => {
     setActivePlan(plan);
     if (typeof window !== "undefined") {
       if (plan) {
@@ -80,6 +81,7 @@ export default function Home() {
         document.documentElement.classList.remove("light-theme");
         document.body.classList.remove("light-theme");
       }
+      localStorage.setItem("asha_theme", nextTheme);
     }
   };
 
@@ -100,34 +102,44 @@ export default function Home() {
         {/* Right Nav Container */}
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
           {/* Desktop Tab Links */}
-          <nav style={{ display: "flex", gap: "8px" }}>
+          <nav style={{ display: "flex", gap: "8px" }} aria-label="Main navigation">
             <button
+              id="nav-tab-dashboard"
               className={`tab-button ${activeTab === "dashboard" ? "active" : ""}`}
               onClick={() => navigateToTab("dashboard")}
+              aria-current={activeTab === "dashboard" ? "page" : undefined}
             >
               Dashboard
             </button>
             <button
+              id="nav-tab-coach"
               className={`tab-button ${activeTab === "coach" ? "active" : ""}`}
               onClick={() => navigateToTab("coach")}
+              aria-current={activeTab === "coach" ? "page" : undefined}
             >
               AI Study Coach
             </button>
             <button
+              id="nav-tab-journal"
               className={`tab-button ${activeTab === "journal" ? "active" : ""}`}
               onClick={() => navigateToTab("journal")}
+              aria-current={activeTab === "journal" ? "page" : undefined}
             >
               AI Journal Analyzer
             </button>
             <button
+              id="nav-tab-chat"
               className={`tab-button ${activeTab === "chat" ? "active" : ""}`}
               onClick={() => navigateToTab("chat")}
+              aria-current={activeTab === "chat" ? "page" : undefined}
             >
               Asha Chat Companion
             </button>
             <button
+              id="nav-tab-mindfulness"
               className={`tab-button ${activeTab === "mindfulness" ? "active" : ""}`}
               onClick={() => navigateToTab("mindfulness")}
+              aria-current={activeTab === "mindfulness" ? "page" : undefined}
             >
               Mindfulness Hub
             </button>
@@ -150,6 +162,7 @@ export default function Home() {
               color: "var(--text-primary)",
               transition: "var(--transition-smooth)"
             }}
+            aria-label={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
             title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
           >
             {theme === "dark" ? "☀️" : "🌙"}
@@ -158,7 +171,7 @@ export default function Home() {
       </header>
 
       {/* Main Container */}
-      <main className="main-content" style={{ flex: 1, maxWidth: "1200px", width: "100%", marginLeft: "auto", marginRight: "auto", padding: "24px 16px" }}>
+      <main id="main-content" className="main-content" style={{ flex: 1, maxWidth: "1200px", width: "100%", marginLeft: "auto", marginRight: "auto", padding: "24px 16px" }}>
         {activeTab === "dashboard" && (
           <DashboardOverview
             exam={exam}

@@ -8,12 +8,19 @@ interface MoodLog {
   emotion: string;
 }
 
+interface CoachPlan {
+  coachTitle: string;
+  summary: string;
+  weeklySchedule: { week: string; milestones: string[]; wellnessFocus?: string }[];
+  dailyRoutineSplits: { studyHours: number; breakHours: number; mindfulnessMinutes: number; outline: string[] };
+}
+
 interface DashboardOverviewProps {
   exam: string;
   setExam: (exam: string) => void;
   logs: MoodLog[];
   onNavigateToTab: (tab: string) => void;
-  activePlan?: any;
+  activePlan?: CoachPlan | null;
 }
 
 export default function DashboardOverview({
@@ -76,11 +83,12 @@ export default function DashboardOverview({
         <div>
           <span style={{ fontSize: "14px", color: "var(--text-secondary)", letterSpacing: "1px", textTransform: "uppercase" }}>Wellness Companion</span>
           <h2 style={{ fontSize: "28px", marginTop: "4px" }}>Welcome Back, <span className="gradient-text">Aspirant</span></h2>
-          <p style={{ color: "var(--text-secondary)", marginTop: "6px" }}>Let's balance your preparation stress and mental focus.</p>
+          <p style={{ color: "var(--text-secondary)", marginTop: "6px" }}>Let&apos;s balance your preparation stress and mental focus.</p>
         </div>
         <div style={{ minWidth: "200px" }}>
-          <label style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "6px" }}>Target Milestone Exam:</label>
+          <label htmlFor="exam-select" style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "6px" }}>Select your target exam</label>
           <select
+            id="exam-select"
             className="glass-input"
             value={exam}
             onChange={(e) => setExam(e.target.value)}
@@ -101,7 +109,7 @@ export default function DashboardOverview({
           
           <div style={{ position: "relative", width: "160px", height: "160px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px" }}>
             {/* SVG Arc Gauge */}
-            <svg width="160" height="160" viewBox="0 0 160 160">
+              <svg width="160" height="160" viewBox="0 0 160 160" aria-label="Stress trend chart">
               <circle
                 cx="80"
                 cy="80"
@@ -159,9 +167,11 @@ export default function DashboardOverview({
                 </div>
               </div>
               <button 
+                id="dashboard-log-entry-btn"
                 className="premium-btn" 
                 onClick={() => onNavigateToTab("journal")}
                 style={{ padding: "10px 16px", fontSize: "13px", alignSelf: "flex-start", marginTop: "16px" }}
+                aria-label="Log a new journal entry"
               >
                 Log New Entry
               </button>
@@ -201,6 +211,7 @@ export default function DashboardOverview({
             )}
           </div>
           <button 
+            id="dashboard-coach-btn"
             className="premium-btn" 
             onClick={() => onNavigateToTab("coach")}
             style={{ padding: "10px 16px", fontSize: "13px", alignSelf: "flex-start" }}
@@ -292,6 +303,7 @@ export default function DashboardOverview({
             className="glass-card glass-card-interactive" 
             onClick={() => onNavigateToTab("mindfulness")}
             style={{ padding: "16px", display: "flex", gap: "12px", alignItems: "center" }}
+            aria-label="Start 4-7-8 Breathing exercise"
           >
             <span style={{ fontSize: "24px" }}>🌬️</span>
             <div>
