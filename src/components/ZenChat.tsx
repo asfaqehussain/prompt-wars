@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface Message {
   role: "user" | "model";
@@ -148,7 +148,7 @@ I am here to listen without judgment. You can talk to me about self-doubt, famil
           </div>
         ))}
         {loading && (
-          <div className="chat-message message-bot">
+          <div className="chat-message message-bot" role="status" aria-label="Asha is typing a response">
             <div className="chat-bubble" style={{ display: "flex", gap: "6px", padding: "12px 16px" }}>
               <span className="dot-blink" style={{ width: "8px", height: "8px", background: "var(--text-muted)", borderRadius: "50%" }} />
               <span className="dot-blink" style={{ width: "8px", height: "8px", background: "var(--text-muted)", borderRadius: "50%", animationDelay: "0.2s" }} />

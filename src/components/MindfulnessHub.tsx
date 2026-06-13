@@ -1,13 +1,17 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useBreathingExercise } from "@/lib/useBreathingExercise";
 
 export default function MindfulnessHub() {
-  // Breathing states
-  const [breathingActive, setBreathingActive] = useState(false);
-  const [breatheState, setBreatheState] = useState<"ready" | "inhale" | "hold" | "exhale">("ready");
-  const [breatheTimer, setBreatheTimer] = useState(0);
-  const [breatheType, setBreatheType] = useState<"478" | "box">("478");
+  const {
+    breathingActive,
+    breatheState,
+    breatheTimer,
+    breatheType,
+    setBreatheType,
+    handleToggleBreathing,
+  } = useBreathingExercise();
 
   // Audio mixer states
   const [rainActive, setRainActive] = useState(false);
@@ -206,131 +210,6 @@ export default function MindfulnessHub() {
     }
   };
 
-  const handleToggleBreathing = () => {
-    if (breathingActive) {
-      setBreathingActive(false);
-      setBreatheState("ready");
-      setBreatheTimer(0);
-    } else {
-      setBreathingActive(true);
-    }
-  };
-
-  // Manage breathing loop intervals
-  useEffect(() => {
-    if (!breathingActive) {
-      return;
-    }
-
-    let timer: ReturnType<typeof setInterval>;
-    
-    const runBreathingCycle = () => {
-      if (breatheType === "478") {
-        // 4-7-8 Timing: Inhale 4s, Hold 7s, Exhale 8s
-        setBreatheState("inhale");
-        setBreatheTimer(4);
-        
-        let currentSec = 4;
-        const interval = setInterval(() => {
-          currentSec--;
-          setBreatheTimer(currentSec);
-          if (currentSec <= 0) {
-            clearInterval(interval);
-            
-            // Go to Hold
-            setBreatheState("hold");
-            setBreatheTimer(7);
-            let holdSec = 7;
-            const holdInterval = setInterval(() => {
-              holdSec--;
-              setBreatheTimer(holdSec);
-              if (holdSec <= 0) {
-                clearInterval(holdInterval);
-                
-                // Go to Exhale
-                setBreatheState("exhale");
-                setBreatheTimer(8);
-                let exhaleSec = 8;
-                const exhaleInterval = setInterval(() => {
-                  exhaleSec--;
-                  setBreatheTimer(exhaleSec);
-                  if (exhaleSec <= 0) {
-                    clearInterval(exhaleInterval);
-                    // Trigger next loop
-                    runBreathingCycle();
-                  }
-                }, 1000);
-                timer = exhaleInterval;
-              }
-            }, 1000);
-            timer = holdInterval;
-          }
-        }, 1000);
-        timer = interval;
-      } else {
-        // Box Breathing: Inhale 4s, Hold 4s, Exhale 4s, Hold 4s
-        setBreatheState("inhale");
-        setBreatheTimer(4);
-        
-        let currentSec = 4;
-        const interval = setInterval(() => {
-          currentSec--;
-          setBreatheTimer(currentSec);
-          if (currentSec <= 0) {
-            clearInterval(interval);
-            
-            // Hold
-            setBreatheState("hold");
-            setBreatheTimer(4);
-            let hold1 = 4;
-            const hold1Interval = setInterval(() => {
-              hold1--;
-              setBreatheTimer(hold1);
-              if (hold1 <= 0) {
-                clearInterval(hold1Interval);
-                
-                // Exhale
-                setBreatheState("exhale");
-                setBreatheTimer(4);
-                let exhale1 = 4;
-                const exhaleInterval = setInterval(() => {
-                  exhale1--;
-                  setBreatheTimer(exhale1);
-                  if (exhale1 <= 0) {
-                    clearInterval(exhaleInterval);
-                    
-                    // Hold Empty
-                    setBreatheState("ready");
-                    setBreatheTimer(4);
-                    let hold2 = 4;
-                    const hold2Interval = setInterval(() => {
-                      hold2--;
-                      setBreatheTimer(hold2);
-                      if (hold2 <= 0) {
-                        clearInterval(hold2Interval);
-                        runBreathingCycle();
-                      }
-                    }, 1000);
-                timer = hold2Interval;
-              }
-            }, 1000);
-            timer = exhaleInterval;
-          }
-        }, 1000);
-        timer = hold1Interval;
-      }
-    }, 1000);
-    timer = interval;
-      }
-    };
-
-    runBreathingCycle();
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, [breathingActive, breatheType]);
-
   // Clean up all audio nodes on unmount
   useEffect(() => {
     return () => {
@@ -355,14 +234,14 @@ export default function MindfulnessHub() {
         <div style={{ display: "flex", gap: "12px", marginBottom: "30px" }}>
           <button
             className={`premium-btn ${breatheType === "478" ? "" : "premium-btn-secondary"}`}
-            onClick={() => { setBreatheType("478"); setBreathingActive(false); }}
+            onClick={() => { setBreatheType("478"); }}
             style={{ padding: "10px 16px", fontSize: "13px" }}
           >
             4-7-8 Calming Breath
           </button>
           <button
             className={`premium-btn ${breatheType === "box" ? "" : "premium-btn-secondary"}`}
-            onClick={() => { setBreatheType("box"); setBreathingActive(false); }}
+            onClick={() => { setBreatheType("box"); }}
             style={{ padding: "10px 16px", fontSize: "13px" }}
           >
             Box Focusing Breath
@@ -394,7 +273,7 @@ export default function MindfulnessHub() {
                 {breatheState === "exhale" && "Exhale"}
               </span>
               {breathingActive && (
-                <span style={{ fontSize: "22px", fontWeight: "800" }}>{breatheTimer}s</span>
+                <span style={{ fontSize: "22px", fontWeight: "800" }} aria-live="polite" aria-atomic="true">{breatheTimer}s</span>
               )}
             </div>
           </div>

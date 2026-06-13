@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit";
+import { validateTextInput, INPUT_LIMITS } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {
   try {
+    if (!checkRateLimit(getClientIdentifier(req.headers))) {
+      return NextResponse.json({ error: "Too many requests. Please slow down." }, { status: 429 });
+    }
+
     const body = await req.json();
     const {
       prepType = "Exam",
@@ -22,6 +28,24 @@ export async function POST(req: NextRequest) {
     const hoursNum = Number(hoursPerDay);
     if (hoursNum < 1 || hoursNum > 16) {
       return NextResponse.json({ error: "Hours per day must be between 1 and 16" }, { status: 400 });
+    }
+
+    const sanitizedTarget = validateTextInput(targetGoal, "Target goal", INPUT_LIMITS.FORM_FIELD);
+    if (!sanitizedTarget.valid) {
+      return NextResponse.json({ error: sanitizedTarget.error }, { status: 400 });
+    }
+
+    if (strengths) {
+      const s = validateTextInput(strengths, "Strengths", INPUT_LIMITS.FORM_FIELD);
+      if (!s.valid) return NextResponse.json({ error: s.error }, { status: 400 });
+    }
+    if (weaknesses) {
+      const w = validateTextInput(weaknesses, "Weaknesses", INPUT_LIMITS.FORM_FIELD);
+      if (!w.valid) return NextResponse.json({ error: w.error }, { status: 400 });
+    }
+    if (notes) {
+      const n = validateTextInput(notes, "Notes", INPUT_LIMITS.FORM_FIELD);
+      if (!n.valid) return NextResponse.json({ error: n.error }, { status: 400 });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;

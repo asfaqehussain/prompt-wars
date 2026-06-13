@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit";
+import { validateTextInput, INPUT_LIMITS } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {
   try {
+    if (!checkRateLimit(getClientIdentifier(req.headers))) {
+      return NextResponse.json({ error: "Too many requests. Please slow down." }, { status: 429 });
+    }
+
     const { messages, exam = "Competitive Exams" } = await req.json();
 
     if (!messages || messages.length === 0) {
@@ -10,6 +16,12 @@ export async function POST(req: NextRequest) {
     }
 
     const lastUserMessage = messages[messages.length - 1].content;
+
+    const msgValidation = validateTextInput(lastUserMessage, "Message", INPUT_LIMITS.CHAT_MESSAGE);
+    if (!msgValidation.valid) {
+      return NextResponse.json({ error: msgValidation.error }, { status: 400 });
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {

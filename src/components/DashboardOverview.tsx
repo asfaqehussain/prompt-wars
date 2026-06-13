@@ -1,19 +1,6 @@
 "use client";
 
-import React from "react";
-
-interface MoodLog {
-  date: string;
-  stressScore: number;
-  emotion: string;
-}
-
-interface CoachPlan {
-  coachTitle: string;
-  summary: string;
-  weeklySchedule: { week: string; milestones: string[]; wellnessFocus?: string }[];
-  dailyRoutineSplits: { studyHours: number; breakHours: number; mindfulnessMinutes: number; outline: string[] };
-}
+import type { MoodLog, CoachPlan } from "@/lib/types";
 
 interface DashboardOverviewProps {
   exam: string;
@@ -302,8 +289,11 @@ export default function DashboardOverview({
           <div 
             className="glass-card glass-card-interactive" 
             onClick={() => onNavigateToTab("mindfulness")}
-            style={{ padding: "16px", display: "flex", gap: "12px", alignItems: "center" }}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigateToTab("mindfulness"); } }}
+            style={{ padding: "16px", display: "flex", gap: "12px", alignItems: "center", cursor: "pointer" }}
             aria-label="Start 4-7-8 Breathing exercise"
+            role="button"
+            tabIndex={0}
           >
             <span style={{ fontSize: "24px" }}>🌬️</span>
             <div>
@@ -314,7 +304,11 @@ export default function DashboardOverview({
           <div 
             className="glass-card glass-card-interactive" 
             onClick={() => onNavigateToTab("chat")}
-            style={{ padding: "16px", display: "flex", gap: "12px", alignItems: "center" }}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigateToTab("chat"); } }}
+            style={{ padding: "16px", display: "flex", gap: "12px", alignItems: "center", cursor: "pointer" }}
+            role="button"
+            tabIndex={0}
+            aria-label="Talk with Asha"
           >
             <span style={{ fontSize: "24px" }}>💬</span>
             <div>
@@ -325,7 +319,11 @@ export default function DashboardOverview({
           <div 
             className="glass-card glass-card-interactive" 
             onClick={() => onNavigateToTab("mindfulness")}
-            style={{ padding: "16px", display: "flex", gap: "12px", alignItems: "center" }}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigateToTab("mindfulness"); } }}
+            style={{ padding: "16px", display: "flex", gap: "12px", alignItems: "center", cursor: "pointer" }}
+            role="button"
+            tabIndex={0}
+            aria-label="Open calming soundscapes"
           >
             <span style={{ fontSize: "24px" }}>🎵</span>
             <div>

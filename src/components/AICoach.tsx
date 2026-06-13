@@ -1,15 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-
-interface CoachPlan {
-  coachTitle: string;
-  summary: string;
-  weeklySchedule: { week: string; milestones: string[]; wellnessFocus?: string }[];
-  strengthMaximizer?: string;
-  weaknessMitigation?: string;
-  dailyRoutineSplits: { studyHours: number; breakHours: number; mindfulnessMinutes: number; outline: string[] };
-}
+import { useState, useEffect } from "react";
+import type { CoachPlan } from "@/lib/types";
 
 interface AICoachProps {
   activePlan: CoachPlan | null;
@@ -341,6 +333,7 @@ export default function AICoach({ activePlan, setActivePlan }: AICoachProps) {
                     <div
                       key={mileIdx}
                       onClick={() => toggleMilestone(itemKey)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleMilestone(itemKey); } }}
                       style={{
                         display: "flex",
                         alignItems: "flex-start",
@@ -352,12 +345,17 @@ export default function AICoach({ activePlan, setActivePlan }: AICoachProps) {
                         border: isDone ? "1px dashed rgba(129, 199, 132, 0.2)" : "1px solid transparent",
                         transition: "var(--transition-smooth)"
                       }}
+                      role="checkbox"
+                      aria-checked={isDone}
+                      tabIndex={0}
                     >
                       <input
                         type="checkbox"
                         checked={isDone}
-                        onChange={() => {}} // Click handler covers this
-                        style={{ marginTop: "3px", pointerEvents: "none" }}
+                        onChange={() => toggleMilestone(itemKey)}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ marginTop: "3px" }}
+                        aria-label={milestone}
                       />
                       <span style={{
                         fontSize: "14px",

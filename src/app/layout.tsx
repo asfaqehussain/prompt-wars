@@ -25,7 +25,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <a href="#main-content" className="skip-to-content">
+          Skip to content
+        </a>
+        {children}
+      </body>
     </html>
   );
 }

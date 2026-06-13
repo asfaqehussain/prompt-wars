@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit";
 import { validateTextInput, INPUT_LIMITS } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {
   try {
+    if (!checkRateLimit(getClientIdentifier(req.headers))) {
+      return NextResponse.json({ error: "Too many requests. Please slow down." }, { status: 429 });
+    }
+
     const { journalText, exam = "General Competitive Exams" } = await req.json();
 
     if (!journalText || journalText.trim().length === 0) {

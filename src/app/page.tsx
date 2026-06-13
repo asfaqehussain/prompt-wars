@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import DashboardOverview from "../components/DashboardOverview";
 import JournalAnalyzer from "../components/JournalAnalyzer";
 import ZenChat from "../components/ZenChat";
