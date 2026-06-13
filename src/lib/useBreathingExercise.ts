@@ -10,7 +10,10 @@ export function useBreathingExercise() {
   const [breatheType, setBreatheType] = useState<BreatheType>("478");
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const breatheTypeRef = useRef(breatheType);
-  breatheTypeRef.current = breatheType;
+
+  useEffect(() => {
+    breatheTypeRef.current = breatheType;
+  }, [breatheType]);
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -27,6 +30,8 @@ export function useBreathingExercise() {
       setBreatheTimer(0);
     } else {
       setBreathingActive(true);
+      setBreatheState("inhale");
+      setBreatheTimer(4);
     }
   };
 
@@ -47,7 +52,7 @@ export function useBreathingExercise() {
     };
 
     let phase: "inhale" | "hold" | "exhale" | "hold2" = "inhale";
-    let counter: number;
+    let counter = getPhaseDuration("inhale");
 
     const advancePhase = () => {
       switch (phase) {
@@ -71,8 +76,7 @@ export function useBreathingExercise() {
         setBreatheState(phase);
       }
 
-      const dur = getPhaseDuration(phase);
-      counter = dur;
+      counter = getPhaseDuration(phase);
       setBreatheTimer(counter);
 
       if (phase === "inhale" && currentType === "478") {
@@ -88,11 +92,6 @@ export function useBreathingExercise() {
         advancePhase();
       }
     };
-
-    const dur = getPhaseDuration("inhale");
-    counter = dur;
-    setBreatheState("inhale");
-    setBreatheTimer(counter);
 
     timerRef.current = setInterval(tick, 1000);
 
